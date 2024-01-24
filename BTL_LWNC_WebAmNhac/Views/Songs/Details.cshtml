@@ -1,0 +1,325 @@
+﻿@model BTL_LWNC_WebAmNhac.Models.Song
+
+@{
+    ViewData["Title"] = "Details";
+    Layout = "_Songs";
+}
+
+
+@if (User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("admin")))
+{
+    <h1>Details</h1>
+    <div>
+        <h4>Song</h4>
+        <hr />
+        <dl class="row">
+            <dt class = "col-sm-2">
+                @Html.DisplayNameFor(model => model.Name)
+            </dt>
+            <dd class = "col-sm-10">
+                @Html.DisplayFor(model => model.Name)
+            </dd>
+            <dt class = "col-sm-2">
+                @Html.DisplayNameFor(model => model.Lyric)
+            </dt>
+            <dd class = "col-sm-10">
+                @Html.DisplayFor(model => model.Lyric)
+            </dd>
+            <dt class = "col-sm-2">
+                @Html.DisplayNameFor(model => model.Thumbnail)
+            </dt>
+            <dd class = "col-sm-10">
+                @Html.DisplayFor(model => model.Thumbnail)
+            </dd>
+            <dt class = "col-sm-2">
+                @Html.DisplayNameFor(model => model.Url)
+            </dt>
+            <dd class = "col-sm-10">
+                @Html.DisplayFor(model => model.Url)
+            </dd>
+            <dt class = "col-sm-2">
+                @Html.DisplayNameFor(model => model.Artist)
+            </dt>
+            <dd class = "col-sm-10">
+                @Html.DisplayFor(model => model.Artist.Name)
+            </dd>
+            <dt class = "col-sm-2">
+                @Html.DisplayNameFor(model => model.Genre)
+            </dt>
+            <dd class = "col-sm-10">
+                @Html.DisplayFor(model => model.Genre.Name)
+            </dd>
+        </dl>
+    </div>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model?.ID">Edit</a> |
+        <a asp-action="Index">Back to List</a>
+    </div>
+}
+else
+{
+    <div class="audio-title"><h2>@Model.Name</h2></div>
+    <div class="audio-playbar">
+        <div class="audio-row">
+
+            <img src="@Model.Thumbnail" style="width:100px">
+        </div>
+
+        <div class="audio-row">
+            <audio id="custom-audio-player" src="@Url.Content(Model.Url)" style="display: none;"></audio>
+            <div class="time-container">
+                <input type="range" id="timeSlider" name="timeSlider" min="0" step="1" value="0" max="100" />
+                <div class="buffer-bar" id="bufferBar" style="display:none"></div>
+            </div>
+        </div>
+
+        <div class="audio-row button-container">
+            <div class="left-button" id="play-button">
+                <i class="fa fa-play" aria-hidden="true"></i>
+                <i class="fa fa-pause" aria-hidden="true"></i>
+            </div>
+            <div class="right-button">
+                <select id="speed-select">
+                    <option value="1">Normal Speed</option>
+                    <option value="1.5">1.5x Speed</option>
+                    <option value="2">2x Speed</option>
+                </select>
+            </div>
+            <div class="right-button" id="volume-container">
+                <i class="fa fa-volume-up" id="volume-button" aria-hidden="true"></i>
+                <input type="range" id="volume" name="volume" min="0" max="1" step="0.01" value="1">
+            </div>
+        </div>
+    </div>
+    <div class="download-container">
+    <i id="download-button" class="fa fa-download" aria-hidden="true"></i>
+    <p>Tải xuống</p>
+</div>
+
+    @if (User.Identity.IsAuthenticated && (User.IsInRole("User") || User.IsInRole("user")))
+    {
+        <div class="add-playlist" onclick="showList(event,'@Model.ID')" style="margin:10px 0px">
+            <i class="fa fa-plus-square-o" aria-hidden="true" onclick="showList(event, '@Model.ID');addPlaylist(event,'@Model.ID')"></i>
+            Thêm vào playlist
+        </div>
+    }
+
+    <h5>Lời bài hát</h5>
+    <div class="lyric-container">
+        <p>@Model.Lyric</p>
+    </div>
+}
+
+<style>
+    .audio-playbar {
+        width: 900px;
+        display: flex;
+        flex-direction: column;
+        background-color: #f0f0f0;
+        padding: 10px;
+    }
+
+    .audio-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .audio-title {
+        font-weight: bold;
+    }
+
+    #custom-audio-player {
+        width: 100%;
+    }
+
+    .left-button, .right-button {
+        cursor: pointer;
+        padding: 5px;
+    }
+
+    #play-button .fa-pause {
+        display: none;
+    }
+
+    #play-button.playing .fa-pause {
+        display: inline-block;
+    }
+
+    #play-button.playing .fa-play {
+        display: none;
+    }
+
+    #speed-select, #volume-container {
+        margin-left: 10px;
+    }
+
+    /* Update styles for the button container */
+    .button-container {
+        display: flex;
+        align-items: center;
+    }
+
+    #forward-button {
+        margin-right: auto;
+    }
+
+    .right-button {
+        margin-left: 0;
+    }
+
+
+    .time-container {
+        margin-top: 10px;
+        position: relative;
+        width: 100%;
+    }
+
+    #timeSlider {
+        width: 100%;
+    }
+
+    .buffer-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 5px;
+        background-color: #ccc;
+        width: 0;
+    }
+</style>
+
+@await Component.InvokeAsync("UserPlaylist")
+<script>
+    function addPlaylist(event, songID) {
+        console.log("go to func...");
+
+        // Unbind click event to avoid multiple bindings
+        jQuery(".userPlaylist").off("click", ".list-item");
+
+        jQuery(".userPlaylist").on("click", ".list-item", function () {
+            var playlistID = jQuery(this).data("id");
+            console.log("playlistID add to playlist:", playlistID);
+            console.log("songID add to playlist:", songID);
+            var url = '/PlaylistDetails/addToPlaylistDetail/?playlistID=' + playlistID + '&songID=' + songID;
+            jQuery.ajax({
+                type: "POST",
+                url: url,
+                dataType: "json",
+                success: function (data) {
+                    if (data.success) {
+                        alert("Thêm thành công");
+                        console.log("success add to playlist detail");
+                    } else {
+                        console.log("fail01");
+                        alert("Đã có trong playlist");
+                    }
+                },
+                error: function () {
+                    console.log("fail00");
+                    alert("Thêm thất bại. Xin vui lòng thử lại!");
+                }
+            });
+        });
+    }
+</script>
+
+<script src="/js/showPlaylist.js"></script>
+
+<script>
+    const $ = document.querySelector.bind(document);
+    const $$ = document.querySelectorAll.bind(document);
+
+    const playBtn = $('#play-button')
+    const audio = $('#custom-audio-player')
+    const player = $('#play-button')
+    const progress = $('#timeSlider')
+    const volume = $('#volume')
+    const speed = $('#speed-select')
+
+    const app = {
+        isPlaying: false,
+        handleEvents: function () {
+            playBtn.onclick = function () {
+                if (app.isPlaying) {
+                    audio.pause()
+                } else {
+                    audio.play()
+                }
+            }
+            audio.onplay = function () {
+                app.isPlaying = true
+                player.classList.add('playing')
+            }
+            audio.onpause = function () {
+                app.isPlaying = false
+                player.classList.remove('playing')
+            }
+            audio.ontimeupdate = function () {
+                if (audio.duration) {
+                    const progressPercent = Math.floor((audio.currentTime / audio.duration) * 100);
+                    progress.value = progressPercent;
+                }
+            };
+            progress.oninput = function (e) {
+                const seekTime = (audio.duration / 100) * e.target.value;
+                audio.currentTime = seekTime;
+            };
+            volume.oninput = function () {
+                audio.volume = volume.value
+            }
+            speed.onchange = function () {
+                audio.playbackRate = parseFloat(speed.value)
+            }
+
+        },
+        start: function () {
+            this.handleEvents()
+        }
+    }
+    app.start()
+</script>
+
+@* //Xu ly tai xuong *@
+<script>
+    function loc_xoa_dau(str) {
+        // Gộp nhiều dấu space thành 1 space
+        str = str.replace(/\s+/g, ' ');
+        // loại bỏ toàn bộ dấu space (nếu có) ở 2 đầu của chuỗi
+        str = str.trim();
+        // bắt đầu xóa dấu tiếng việt  trong chuỗi
+        str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+        str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+        str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+        str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+        str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+        str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+        str = str.replace(/đ/g, "d");
+        str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+        str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+        str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+        str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+        str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+        str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+        str = str.replace(/Đ/g, "D");
+        return str;
+    }
+    var songName = loc_xoa_dau('@Html.Raw(@Model.Name)').replace(/\s/g, '');
+    var downloadButton = document.getElementById('download-button');
+
+    // Now modelName contains the value of @Model.Name as a JavaScript string
+    downloadButton.addEventListener('click', function () {
+        // Add logic to trigger the download of the audio file
+        var audioFileUrl = '@Url.Content(Model.Url)';
+        var a = document.createElement('a');
+        a.href = audioFileUrl;
+        a.download = songName + ".mp3"; // Set the desired file name
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+
+</script>
+
