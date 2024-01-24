@@ -1,16 +1,5 @@
 # WebAmNhac
 btl lwnc .NET Core MVC 6.0, C#
 
-Cấu hình file setting.json:
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  "ConnectionStrings": {
-    "BTL_LWNC_WebAmNhacContext": "Data Source=DESKTOP-DPL4NMB\\THUAN;Initial Catalog=WebAmNhac;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False"
-  }
-}
+Trang chủ
+![3](https://github.com/vanphatdevjz/WebAmNhac/assets/110846341/ec1aef41-0516-4eba-8023-4bde9c2ad0c9)
